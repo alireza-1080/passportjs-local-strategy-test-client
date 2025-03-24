@@ -1,12 +1,71 @@
 'use client'
 import React from 'react'
+import toast from 'react-hot-toast'
+import { useRouter } from 'next/navigation'
 
 const Login = () => {
   const [username, setUsername] = React.useState<string>('')
   const [password, setPassword] = React.useState<string>('')
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const router = useRouter()
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+
+    if (!username) {
+      toast.error('Username field cannot be empty')
+      return
+    }
+
+    if (!password) {
+      toast.error('Password field cannot be empty')
+      return
+    }
+
+    try {
+      const loginResponse = await fetch('http://localhost:4000/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username,
+          password,
+        }),
+        credentials: 'include',
+      })
+
+      if (!loginResponse.ok) {
+        toast.error('Invalid credentials')
+        return
+      }
+
+      type User = {
+        id: string
+        username: string
+      }
+
+      type LoginData = {
+        message: string
+        user: User
+      }
+
+      const loginData: LoginData = await loginResponse.json()
+      toast.success(loginData.message)
+      toast.success(`User id: ${loginData.user.id}`)
+      toast.success(`Username: ${loginData.user.username}`)
+
+      router.replace('/')
+    } catch (error) {
+      if (error instanceof Error) {
+        console.log(error)
+        toast.error(error.message)
+        return
+      }
+
+      console.log(error)
+      toast.error('Unknown error occurred during login')
+    }
   }
 
   return (
